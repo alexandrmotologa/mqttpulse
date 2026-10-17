@@ -74,19 +74,23 @@ MQTTPulse packages these functions into a single binary and web cockpit. It runs
 
 ### D3.js Radial Topic Tree
 <img src="docs/images/mqttpulse-1.png" alt="Radial Topic Tree" width="900" />
-<p><em>Circular radial tree visualization with nodes colored by rolling message rate (msgs/sec) and live message telemetry table.</em></p>
+<p><em>Circular radial tree visualization with nodes colored by rolling message rate (msgs/sec) and live virtualized message stream.</em></p>
 
-### Deep Packet Inspector
-<img src="docs/images/mqttpulse-2.png" alt="Packet Inspector" width="900" />
-<p><em>MQTT 5.0 header metadata inspector with User Properties table and hexadecimal/ASCII byte dump.</em></p>
+### Live Telemetry Plotter
+<img src="docs/images/mqttpulse-2.png" alt="Live Telemetry Plotter" width="900" />
+<p><em>Continuous 60 FPS HTML5 Canvas time-series plotter tracking numerical sensor values, min/max/average metrics, and rolling window buffers.</em></p>
 
-### IoT Fleet Simulator & Network Chaos Controls
-<img src="docs/images/mqttpulse-3.png" alt="IoT Simulator Controls" width="900" />
-<p><em>Configuration cockpit managing synthetic sensor devices, publication intervals, latency jitter, and packet drop probabilities.</em></p>
+### Fleet Geolocation Map View
+<img src="docs/images/mqttpulse-3.png" alt="Fleet Geolocation Map" width="900" />
+<p><em>Vector-rendered GPS map tracking simulated and physical mobile IoT devices with heading direction, speed in km/h, and status indicators.</em></p>
 
-### Collapsible Topic Hierarchy List
-<img src="docs/images/mqttpulse-4.png" alt="Topic List View" width="900" />
-<p><em>Indented topic tree showing subtree message counts, cumulative byte size, and rolling throughput rates per branch.</em></p>
+### Deep Packet Inspector & Payload Diffing
+<img src="docs/images/mqttpulse-4.png" alt="Packet Inspector" width="900" />
+<p><em>Structural delta comparison (+, ~, -) between consecutive packets, schema drift anomaly diagnostics, MQTT 5.0 User Properties, and 16-byte aligned Hex dump.</em></p>
+
+### Bidirectional MQTT 5.0 RPC Console
+<img src="docs/images/mqttpulse-5.png" alt="MQTT 5.0 RPC Console" width="900" />
+<p><em>Request-response execution engine utilizing responseTopic and correlationData with sub-millisecond round-trip time latency measurement.</em></p>
 
 </div>
 

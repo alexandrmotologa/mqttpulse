@@ -182,12 +182,12 @@ export const MessageStreamTable: React.FC<MessageStreamTableProps> = ({
 
       {/* Table Header */}
       <div className="grid grid-cols-12 gap-2 px-3 py-2 border-b border-slate-800 bg-[#0f172a] text-[11px] font-semibold text-slate-400 uppercase tracking-wider select-none">
-        <div className="col-span-2">Time</div>
-        <div className="col-span-3">Topic</div>
-        <div className="col-span-1 text-center">QoS</div>
-        <div className="col-span-1 text-center">Format</div>
-        <div className="col-span-4">Payload Preview</div>
-        <div className="col-span-1 text-right">Size</div>
+        <div className="col-span-3 sm:col-span-2">Time</div>
+        <div className="col-span-6 sm:col-span-3">Topic</div>
+        <div className="hidden sm:block sm:col-span-1 text-center">QoS</div>
+        <div className="col-span-3 sm:col-span-1 text-center">Format</div>
+        <div className="hidden sm:block sm:col-span-4">Payload Preview</div>
+        <div className="hidden sm:block sm:col-span-1 text-right">Size</div>
       </div>
 
       {/* Messages Scroll Area */}
@@ -219,12 +219,12 @@ export const MessageStreamTable: React.FC<MessageStreamTableProps> = ({
                 }`}
               >
                 {/* Time */}
-                <div className="col-span-2 text-slate-400 text-[11px] truncate">
+                <div className="col-span-3 sm:col-span-2 text-slate-400 text-[11px] truncate">
                   {new Date(msg.timestamp).toLocaleTimeString()}.{String(msg.timestamp % 1000).padStart(3, '0')}
                 </div>
 
                 {/* Topic */}
-                <div className="col-span-3 font-semibold text-emerald-400 truncate flex items-center gap-1.5" title={msg.topic}>
+                <div className="col-span-6 sm:col-span-3 font-semibold text-emerald-400 truncate flex items-center gap-1.5" title={msg.topic}>
                   {msg.retain && (
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" title="Retained message" />
                   )}
@@ -244,24 +244,24 @@ export const MessageStreamTable: React.FC<MessageStreamTableProps> = ({
                 </div>
 
                 {/* QoS */}
-                <div className="col-span-1 text-center">
+                <div className="hidden sm:block sm:col-span-1 text-center">
                   <span className="px-1.5 py-0.5 rounded text-[10px] bg-slate-800 text-sky-400 font-medium">
                     {msg.qos}
                   </span>
                 </div>
 
                 {/* Format */}
-                <div className="col-span-1 text-center flex justify-center">
+                <div className="col-span-3 sm:col-span-1 text-center flex justify-center">
                   {getFormatBadge(msg.decoded.format)}
                 </div>
 
                 {/* Payload snippet */}
-                <div className="col-span-4 text-slate-400 text-[11px] truncate" title={snippet}>
+                <div className="hidden sm:block sm:col-span-4 text-slate-400 text-[11px] truncate" title={snippet}>
                   {snippet}
                 </div>
 
                 {/* Size */}
-                <div className="col-span-1 text-right text-slate-500 text-[11px]">
+                <div className="hidden sm:block sm:col-span-1 text-right text-slate-500 text-[11px]">
                   {msg.decoded.byteLength} B
                 </div>
               </div>

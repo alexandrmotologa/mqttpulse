@@ -56,6 +56,7 @@ export function App() {
   } = useMqttStream();
 
   const [activeView, setActiveView] = useState<MainViewType>('radial');
+  const [mobileTab, setMobileTab] = useState<'view' | 'stream'>('view');
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
   const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
 
@@ -93,10 +94,36 @@ export function App() {
         onToggleMute={toggleMute}
       />
 
+      {/* Mobile View Switcher (Only visible on screens < md) */}
+      <div className="md:hidden flex items-center bg-[#0d131f] border-b border-slate-800 px-3 py-1.5 gap-2 text-xs font-mono select-none">
+        <button
+          onClick={() => setMobileTab('view')}
+          className={`flex-1 py-1.5 px-3 rounded-md transition font-medium flex items-center justify-center gap-1.5 ${
+            mobileTab === 'view'
+              ? 'bg-emerald-600 text-white shadow-sm'
+              : 'text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800'
+          }`}
+        >
+          <span>Visualizer</span>
+          <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/30 uppercase font-semibold">{activeView}</span>
+        </button>
+        <button
+          onClick={() => setMobileTab('stream')}
+          className={`flex-1 py-1.5 px-3 rounded-md transition font-medium flex items-center justify-center gap-1.5 ${
+            mobileTab === 'stream'
+              ? 'bg-emerald-600 text-white shadow-sm'
+              : 'text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800'
+          }`}
+        >
+          <span>Message Stream</span>
+          <span className="text-[10px] px-1.5 py-0.2 rounded bg-black/30 font-bold">{messages.length}</span>
+        </button>
+      </div>
+
       {/* Main Workspace */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden p-3 gap-3">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden p-2 sm:p-3 gap-2 sm:gap-3">
         {/* Left / Primary Interactive View */}
-        <div className="w-full md:w-7/12 h-1/2 md:h-full flex flex-col min-w-0">
+        <div className={`w-full md:w-7/12 h-full flex flex-col min-w-0 ${mobileTab === 'view' ? 'flex' : 'hidden md:flex'}`}>
           {activeView === 'radial' && (
             <TopicTreeRadial
               data={treeData}
@@ -151,7 +178,7 @@ export function App() {
         </div>
 
         {/* Right / Split Message Stream & Deep Packet Inspector */}
-        <div className="w-full md:w-5/12 h-1/2 md:h-full flex flex-col relative min-w-0">
+        <div className={`w-full md:w-5/12 h-full flex flex-col relative min-w-0 ${mobileTab === 'stream' ? 'flex' : 'hidden md:flex'}`}>
           <MessageStreamTable
             messages={messages}
             onSelectMessage={handleSelectMessage}
