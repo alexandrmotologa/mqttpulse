@@ -139,6 +139,28 @@ export function createAppState(): AppState {
       }
     }
 
+    // Auto-respond for simulated devices when an RPC request is received
+    if (msg.properties?.responseTopic && msg.properties?.correlationData && state.simulator.getStats().running) {
+      const respTopic = msg.properties.responseTopic;
+      const corrData = msg.properties.correlationData;
+      setTimeout(() => {
+        const ackPayload = Buffer.from(JSON.stringify({
+          status: 'ACK',
+          commandTopic: msg.topic,
+          commandReceived: decoded.parsed || decoded.rawString,
+          acknowledgedAt: Date.now(),
+          deviceState: 'ONLINE'
+        }));
+        mqttClient.publish(respTopic, ackPayload, {
+          qos: 0,
+          properties: {
+            correlationData: corrData,
+            contentType: 'application/json'
+          }
+        }).catch(() => {});
+      }, 40);
+    }
+
     // 10. Store in recent buffer
     state.recentMessages.unshift({
       id: msg.id,
