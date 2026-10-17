@@ -76,6 +76,32 @@ export class FleetSimulatorManager extends EventEmitter {
 
   public setMqttClient(client: MqttConnectionManager): void {
     this.mqttClient = client;
+
+    // Automated RPC acknowledgment for virtual fleet devices
+    client.on('message', (msg) => {
+      if (msg.properties?.responseTopic && msg.properties?.correlationData) {
+        const responseTopic = msg.properties.responseTopic;
+        const correlationData = msg.properties.correlationData;
+        const ackPayload = Buffer.from(
+          JSON.stringify({
+            status: 'SUCCESS',
+            code: 200,
+            commandTopic: msg.topic,
+            acknowledgedAt: Date.now(),
+            details: 'Virtual IoT node processed command successfully'
+          })
+        );
+
+        setTimeout(() => {
+          this.mqttClient?.publish(responseTopic, ackPayload, {
+            qos: 1,
+            properties: {
+              correlationData
+            }
+          }).catch(() => {});
+        }, 120);
+      }
+    });
   }
 
   public updateConfig(newConfig: Partial<FleetSimulatorConfig>): void {

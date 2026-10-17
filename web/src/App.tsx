@@ -1,12 +1,16 @@
 import { useState } from 'react';
 import { useMqttStream } from './hooks/useMqttStream';
-import { Header } from './components/Header';
+import { Header, MainViewType } from './components/Header';
 import { TopicTreeRadial } from './components/TopicTreeRadial';
 import { TopicTreeIndented } from './components/TopicTreeIndented';
 import { MessageStreamTable } from './components/MessageStreamTable';
 import { PacketInspector } from './components/PacketInspector';
 import { FleetControls } from './components/FleetControls';
 import { PublishTestBench } from './components/PublishTestBench';
+import { LivePlotter } from './components/LivePlotter';
+import { FleetMapView } from './components/FleetMapView';
+import { RpcConsole } from './components/RpcConsole';
+import { RulesAlertsModal } from './components/RulesAlertsModal';
 import { ConnectModal } from './components/ConnectModal';
 import { InboundMessage } from './types';
 
@@ -24,19 +28,36 @@ export function App() {
     setSelectedNodeTopic,
     selectedMessage,
     setSelectedMessage,
+    alerts,
+    rules,
+    geoMarkers,
+    isRecording,
+    recordingCount,
+    isMuted,
+    rpcHistory,
+    toggleMute,
     connectBroker,
     disconnectBroker,
     publishMessage,
+    sendRpc,
     clearTree,
     startSimulator,
     stopSimulator,
     resetSimulator,
     updateSimulatorConfig,
-    toggleEmbeddedBroker
+    toggleEmbeddedBroker,
+    startRecording,
+    stopRecording,
+    addRule,
+    deleteRule,
+    toggleRule,
+    clearAlerts,
+    markAlertsRead
   } = useMqttStream();
 
-  const [activeView, setActiveView] = useState<'radial' | 'indented' | 'simulator' | 'publisher'>('radial');
+  const [activeView, setActiveView] = useState<MainViewType>('radial');
   const [isConnectModalOpen, setIsConnectModalOpen] = useState(false);
+  const [isRulesModalOpen, setIsRulesModalOpen] = useState(false);
 
   const handleSelectMessage = (msg: InboundMessage) => {
     setSelectedMessage(msg);
@@ -45,6 +66,8 @@ export function App() {
   const handleCloseInspector = () => {
     setSelectedMessage(null);
   };
+
+  const unreadAlertsCount = alerts.filter((a) => !a.read).length;
 
   return (
     <div className="flex flex-col h-screen w-screen bg-[#090d16] text-slate-100 overflow-hidden font-sans">
@@ -61,9 +84,16 @@ export function App() {
         onToggleEmbedded={toggleEmbeddedBroker}
         onClear={clearTree}
         simulatorRunning={fleetStats?.running ?? false}
+        unreadAlertsCount={unreadAlertsCount}
+        onOpenRulesModal={() => setIsRulesModalOpen(true)}
+        isRecording={isRecording}
+        recordingCount={recordingCount}
+        onToggleRecording={() => (isRecording ? stopRecording() : startRecording())}
+        isMuted={isMuted}
+        onToggleMute={toggleMute}
       />
 
-      {/* Main Workspace Workspace */}
+      {/* Main Workspace */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden p-3 gap-3">
         {/* Left / Primary Interactive View */}
         <div className="w-full md:w-7/12 h-1/2 md:h-full flex flex-col min-w-0">
@@ -80,6 +110,24 @@ export function App() {
               data={treeData}
               onSelectTopic={(topic) => setSelectedNodeTopic(topic)}
               selectedTopic={selectedNodeTopic}
+            />
+          )}
+
+          {activeView === 'plotter' && (
+            <LivePlotter initialTopic={selectedNodeTopic} />
+          )}
+
+          {activeView === 'map' && (
+            <FleetMapView
+              markers={geoMarkers}
+              onSelectTopic={(topic) => setSelectedNodeTopic(topic)}
+            />
+          )}
+
+          {activeView === 'rpc' && (
+            <RpcConsole
+              onSendRpc={sendRpc}
+              history={rpcHistory}
             />
           )}
 
@@ -128,6 +176,19 @@ export function App() {
           await connectBroker(params);
         }}
         currentUrl={brokerUrl}
+      />
+
+      {/* Rules & Telemetry Alerts Modal */}
+      <RulesAlertsModal
+        isOpen={isRulesModalOpen}
+        onClose={() => setIsRulesModalOpen(false)}
+        rules={rules}
+        alerts={alerts}
+        onAddRule={addRule}
+        onDeleteRule={deleteRule}
+        onToggleRule={toggleRule}
+        onClearAlerts={clearAlerts}
+        onMarkRead={markAlertsRead}
       />
     </div>
   );

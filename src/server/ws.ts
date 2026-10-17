@@ -30,6 +30,12 @@ export function registerWebSocket(app: FastifyInstance, state: AppState): void {
         embeddedBroker: {
           running: state.embeddedBroker.isRunning,
           url: state.embeddedBroker.brokerUrl
+        },
+        alerts: state.rulesEngine.getAlerts(20),
+        geoMarkers: Array.from(state.geoMarkers.values()),
+        recording: {
+          isRecording: state.recorder.isRecording,
+          bufferedCount: state.recorder.currentBufferLength
         }
       })
     );
@@ -50,9 +56,8 @@ export function registerWebSocket(app: FastifyInstance, state: AppState): void {
     });
   });
 
-  // Listen to incoming MQTT messages and broadcast to UI clients
+  // 1. Inbound MQTT messages broadcast
   state.mqttClient.on('message', () => {
-    // The message was already decoded and inserted into recentMessages[0] in state.ts
     const latest = state.recentMessages[0];
     if (latest) {
       broadcast({
@@ -62,7 +67,15 @@ export function registerWebSocket(app: FastifyInstance, state: AppState): void {
     }
   });
 
-  // Broker status changes
+  // 2. Alert event broadcast
+  state.rulesEngine.on('alert', (alert) => {
+    broadcast({
+      type: 'alert',
+      alert
+    });
+  });
+
+  // 3. Broker status changes
   state.mqttClient.on('statusChange', (status) => {
     broadcast({
       type: 'status',
@@ -71,7 +84,7 @@ export function registerWebSocket(app: FastifyInstance, state: AppState): void {
     });
   });
 
-  // Simulator stats updates
+  // 4. Simulator stats updates
   state.simulator.on('stats', (stats) => {
     broadcast({
       type: 'fleet_stats',
@@ -79,13 +92,22 @@ export function registerWebSocket(app: FastifyInstance, state: AppState): void {
     });
   });
 
-  // Periodic Topic Tree & Global Stats Sync (Every 1000ms)
+  // 5. Recorder events
+  state.recorder.on('start', (info) => {
+    broadcast({ type: 'recording_status', isRecording: true, info });
+  });
+  state.recorder.on('stop', (session) => {
+    broadcast({ type: 'recording_status', isRecording: false, session });
+  });
+
+  // 6. Periodic Topic Tree, Geo & Global Stats Sync (Every 1000ms)
   setInterval(() => {
     if (clients.size > 0) {
       broadcast({
         type: 'tree_update',
         tree: state.trie.toHierarchy(),
-        stats: state.trie.getGlobalStats()
+        stats: state.trie.getGlobalStats(),
+        geoMarkers: Array.from(state.geoMarkers.values()).slice(0, 200)
       });
     }
   }, 1000);

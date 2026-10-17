@@ -131,6 +131,51 @@ MQTTPulse packages these functions into a single binary and web cockpit. It runs
 - Ships with an embedded Aedes broker listening on port 18883.
 - Runs without any external broker installation for instant local testing, offline debugging, and simulation.
 
+### 6. Live Payload Diffing (Time-Travel Delta)
+- Computes recursive structural deltas between consecutive packets on the same topic.
+- Identifies added, modified, and deleted properties in nested objects and arrays.
+- Renders color-coded diff views with path indicators in the Packet Inspector.
+
+### 7. Live Telemetry Plotter (Continuous Time-Series)
+- 60 FPS HTML5 Canvas graph tracking numerical telemetry fields in real time.
+- Rolling window with min, max, average, and current value callouts.
+- Automatic field extraction from incoming JSON and decoded telemetry payloads.
+
+### 8. Schema Drift & Anomaly Detector
+- Dynamic fingerprinting of topic telemetry structures.
+- Detects type mutations (e.g. number switching to string) and unexpected new fields after baseline stabilization.
+- Visual warning badges in the message stream and detailed anomaly diagnostics in the inspector.
+
+### 9. Session Recording & Replay Engine
+- Records raw incoming packets with millisecond delta timestamps.
+- Exports recorded sessions in standardized JSONL format.
+- Replays historical telemetry through the engine at 0.5x, 1x, 2x, or 5x speed for stress testing and regression analysis.
+
+### 10. Fleet Geolocation Map View
+- Vector-rendered interactive GPS coordinate tracker for simulated and physical mobile IoT devices.
+- Visualizes latitude, longitude, movement heading angles, and velocity (km/h) with status color-coding.
+
+### 11. Bidirectional MQTT 5.0 RPC Console
+- Sends command payloads with `responseTopic` and cryptographic `correlationData`.
+- Awaits asynchronous responses matching the correlation token and calculates round-trip time in milliseconds.
+- Virtual IoT fleet nodes automatically handle commands and emit acknowledge payloads.
+
+### 12. Rule Triggers & Telemetry Alerts Engine
+- Evaluates incoming payloads against threshold rules (`>`, `<`, `>=`, `<=`, `==`, `!=`, `contains`).
+- Configurable severity levels (info, warning, critical) and cooldown intervals to prevent alert spam.
+- In-memory event ledger with read tracking and direct alert dismissal.
+
+### 13. Prometheus Metrics (`/metrics`)
+- Standard Prometheus text format export of broker throughput, message counters, active topics, chaos fault injections, and alert statistics.
+- Ready for integration with Prometheus, VictoriaMetrics, and Grafana dashboards.
+
+### 14. Web Audio Micro-Interactions
+- Procedural Web Audio API synthesizer generating tactile auditory feedback for packet arrivals, publisher dispatches, alerts, and dropped frames.
+- Completely self-contained with zero audio asset dependencies and instant mute toggling.
+
+### 15. One-Click Data Export
+- Direct in-browser export of filtered message streams to CSV and JSONL formats with timestamp offsets and decoded payload structures.
+
 ---
 
 ## Quick Start
@@ -203,16 +248,32 @@ The Fastify server exposes endpoints for automation and integration:
 
 | Method | Endpoint | Description |
 |---|---|---|
+| `GET` | `/metrics` | Standard Prometheus metric export (gauges, counters, rate, throughput) |
 | `GET` | `/api/status` | Broker connection state, client metrics, embedded broker status, and simulator stats |
 | `POST` | `/api/connect` | Connect to an MQTT broker (`url`, `clientId`, `protocolVersion`, `clean`, `topic`) |
 | `POST` | `/api/disconnect` | Terminate the current broker connection |
 | `POST` | `/api/subscribe` | Subscribe to a topic filter with specified QoS (`topicFilter`, `qos`) |
 | `POST` | `/api/unsubscribe` | Remove a topic filter subscription (`topicFilter`) |
 | `POST` | `/api/publish` | Publish an MQTT message with payload, QoS, retain flag, and user properties |
+| `POST` | `/api/rpc` | Execute MQTT 5.0 request-response RPC with correlation token and response topic |
 | `GET` | `/api/tree` | Fetch the complete serialized Topic Trie hierarchy for visualization |
 | `GET` | `/api/stats` | Global throughput, message rates, and byte counters |
 | `POST` | `/api/tree/clear` | Reset the in-memory topic trie and message buffer |
 | `GET` | `/api/messages` | Retrieve recent buffered messages (supports `?limit=100`) |
+| `GET` | `/api/timeseries` | Query time-series telemetry series and active numerical field keys |
+| `GET` | `/api/geo/markers` | Retrieve live GPS coordinates, headings, and speeds for mobile fleet nodes |
+| `GET` | `/api/rules` | List configured telemetry threshold rules |
+| `POST` | `/api/rules` | Create a new evaluation rule (`topicFilter`, `field`, `operator`, `value`, `severity`) |
+| `DELETE`| `/api/rules/:id` | Remove a telemetry evaluation rule |
+| `POST` | `/api/rules/:id/toggle` | Enable or disable a telemetry evaluation rule |
+| `GET` | `/api/alerts` | List triggered alert events |
+| `POST` | `/api/alerts/read` | Mark all alerts as read |
+| `POST` | `/api/alerts/clear` | Clear alert history |
+| `POST` | `/api/recording/start` | Start telemetry session recording |
+| `POST` | `/api/recording/stop` | Stop recording and retrieve compiled session |
+| `GET` | `/api/recording/status` | Current recording state and buffered packet count |
+| `GET` | `/api/recording/export` | Download recorded session as JSONL |
+| `POST` | `/api/recording/replay` | Replay recorded session through the broker at variable playback speeds |
 | `GET` | `/api/simulator` | Fetch current fleet simulator configuration and telemetry statistics |
 | `POST` | `/api/simulator/config` | Update fleet size, sensor profile, format, interval, or chaos settings |
 | `POST` | `/api/simulator/start` | Start virtual device telemetry emissions |
@@ -227,7 +288,7 @@ The Fastify server exposes endpoints for automation and integration:
 
 ## Verification & Tests
 
-Run the Vitest test suite covering topic wildcard matching, trie operations, decoders, physics models, and embedded broker integration:
+Run the Vitest test suite covering topic wildcard matching, trie operations, decoders, physics models, embedded broker integration, payload diffing, schema drift, rules engine, and Prometheus metrics:
 
 ```bash
 npm test
@@ -240,14 +301,15 @@ Test output:
 
  ✓ tests/wildcard.test.ts (6 tests)
  ✓ tests/trie.test.ts (5 tests)
- ✓ tests/benchmark.test.ts (1 test) -> 1,466,413 msgs/sec
+ ✓ tests/benchmark.test.ts (1 test) -> 1,454,829 msgs/sec
+ ✓ tests/features.test.ts (9 tests)
  ✓ tests/simulator.test.ts (5 tests)
  ✓ tests/decoders.test.ts (6 tests)
  ✓ tests/broker_client.test.ts (2 tests)
 
- Test Files  6 passed (6)
-      Tests  25 passed (25)
-   Duration  1.50s
+ Test Files  7 passed (7)
+      Tests  34 passed (34)
+   Duration  1.61s
 ```
 
 ---
@@ -267,6 +329,10 @@ mqttpulse/
 │   │   └── embedded.ts         # In-memory Aedes broker wrapper
 │   ├── core/
 │   │   ├── client.ts           # MQTT 5.0/3.1.1 client connection manager with protocol downgrade
+│   │   ├── diff.ts             # Structural payload diffing and change calculator
+│   │   ├── recorder.ts         # Telemetry session recorder and variable-speed replayer
+│   │   ├── rules.ts            # Threshold evaluation rules and alerts engine
+│   │   ├── schema_drift.ts     # Topic schema fingerprinting and drift detector
 │   │   ├── stats.ts            # Moving average throughput and message rate calculators
 │   │   ├── trie.ts             # In-memory topic hierarchy Trie data structure
 │   │   └── wildcard.ts         # MQTT topic filter validation and matching (+, #, $SYS)
@@ -280,18 +346,20 @@ mqttpulse/
 │   ├── server/
 │   │   ├── api.ts              # Fastify REST endpoints
 │   │   ├── index.ts            # Server factory and static web asset serving
+│   │   ├── metrics.ts          # Prometheus metrics generation
 │   │   ├── state.ts            # Shared application state
 │   │   └── ws.ts               # WebSocket telemetry and message stream broadcaster
 │   ├── simulator/
 │   │   ├── chaos.ts            # Latency jitter, packet loss, and bit-flip fault injector
 │   │   ├── device_profile.ts   # 5 physical sensor profiles with state update rules
-│   │   ├── fleet_manager.ts    # Coordinator for up to 1,000 synthetic devices
+│   │   ├── fleet_manager.ts    # Coordinator for up to 1,000 synthetic devices with RPC response
 │   │   └── physics.ts          # Ornstein-Uhlenbeck mean-reverting and GPS navigation math
 │   └── cli.ts                  # Command line interface definition
 ├── tests/
 │   ├── benchmark.test.ts       # Throughput stress test
 │   ├── broker_client.test.ts   # End-to-end integration test
 │   ├── decoders.test.ts        # Payload decoders test suite
+│   ├── features.test.ts        # Advanced features tests (diff, drift, rules, recording, metrics)
 │   ├── simulator.test.ts       # Physics and chaos engine tests
 │   ├── trie.test.ts            # Topic tree trie unit tests
 │   └── wildcard.test.ts        # MQTT wildcard compliance test suite
@@ -300,14 +368,21 @@ mqttpulse/
 │   │   ├── components/
 │   │   │   ├── ConnectModal.tsx        # Broker connection dialog
 │   │   │   ├── FleetControls.tsx       # Simulator and chaos injection sliders
+│   │   │   ├── FleetMapView.tsx        # GPS vector map view with node headings
 │   │   │   ├── Header.tsx              # Top navigation bar and status indicators
-│   │   │   ├── MessageStreamTable.tsx  # Live virtualized message table with filters
-│   │   │   ├── PacketInspector.tsx     # MQTT 5.0 properties and multi-view payload viewer
+│   │   │   ├── LivePlotter.tsx         # Real-time HTML5 Canvas time-series plotter
+│   │   │   ├── MessageStreamTable.tsx  # Live virtualized message table with filters and export
+│   │   │   ├── PacketInspector.tsx     # MQTT 5.0 properties, payload diffs, and hex dump
 │   │   │   ├── PublishTestBench.tsx    # Interactive MQTT message publisher
+│   │   │   ├── RpcConsole.tsx          # MQTT 5.0 request-response RPC console
+│   │   │   ├── RulesAlertsModal.tsx    # Threshold rules configuration and alert ledger
 │   │   │   ├── TopicTreeIndented.tsx   # Collapsible topic hierarchy table
 │   │   │   └── TopicTreeRadial.tsx     # D3.js interactive radial topic tree
 │   │   ├── hooks/
 │   │   │   └── useMqttStream.ts        # Real-time WebSocket hook
+│   │   ├── utils/
+│   │   │   ├── audio.ts                # Web Audio API micro-interactions synthesizer
+│   │   │   └── export.ts               # CSV and JSONL client-side exporters
 │   │   ├── App.tsx                     # Main layout
 │   │   ├── main.tsx                    # React 19 mount point
 │   │   └── types.ts                    # TypeScript interface contracts

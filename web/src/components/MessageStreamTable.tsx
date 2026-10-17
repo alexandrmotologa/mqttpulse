@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { InboundMessage } from '../types';
-import { Search, Filter, Play, Pause, Trash2 } from 'lucide-react';
+import { Search, Filter, Play, Pause, Trash2, Download, AlertTriangle, GitCompare } from 'lucide-react';
+import { exportToCsv, exportToJsonl } from '../utils/export';
+import { audioEngine } from '../utils/audio';
 
 interface MessageStreamTableProps {
   messages: InboundMessage[];
@@ -133,11 +135,39 @@ export const MessageStreamTable: React.FC<MessageStreamTableProps> = ({
                 ? 'bg-amber-950/80 text-amber-400 border-amber-800'
                 : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
             }`}
-            title={isPaused ? 'Resume stream' : 'Pause stream'}
+              title={isPaused ? 'Resume stream' : 'Pause stream'}
           >
             {isPaused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
             <span>{isPaused ? 'Paused' : 'Live'}</span>
           </button>
+
+          {/* Export buttons */}
+          <div className="flex items-center gap-1 border-l border-slate-700/80 pl-2">
+            <button
+              onClick={() => {
+                audioEngine.playClick();
+                exportToCsv(filteredMessages);
+              }}
+              disabled={filteredMessages.length === 0}
+              className="flex items-center gap-1 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 border border-slate-700 text-xs transition"
+              title="Export filtered messages as CSV"
+            >
+              <Download className="w-3 h-3 text-emerald-400" />
+              <span>CSV</span>
+            </button>
+            <button
+              onClick={() => {
+                audioEngine.playClick();
+                exportToJsonl(filteredMessages);
+              }}
+              disabled={filteredMessages.length === 0}
+              className="flex items-center gap-1 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-300 border border-slate-700 text-xs transition"
+              title="Export filtered messages as JSONL"
+            >
+              <Download className="w-3 h-3 text-sky-400" />
+              <span>JSONL</span>
+            </button>
+          </div>
 
           {/* Clear button */}
           <button
@@ -178,7 +208,10 @@ export const MessageStreamTable: React.FC<MessageStreamTableProps> = ({
             return (
               <div
                 key={msg.id}
-                onClick={() => onSelectMessage(msg)}
+                onClick={() => {
+                  audioEngine.playClick();
+                  onSelectMessage(msg);
+                }}
                 className={`grid grid-cols-12 gap-2 px-3 py-2 cursor-pointer transition items-center ${
                   isSelected
                     ? 'bg-emerald-950/40 text-emerald-300 border-l-2 border-emerald-500'
@@ -196,6 +229,18 @@ export const MessageStreamTable: React.FC<MessageStreamTableProps> = ({
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0" title="Retained message" />
                   )}
                   <span className="truncate">{msg.topic}</span>
+                  {msg.drift?.isDrift && (
+                    <span className="px-1 py-0.2 rounded text-[9px] bg-amber-950 text-amber-400 border border-amber-800 font-mono font-bold flex-shrink-0 flex items-center gap-0.5" title={`${msg.drift.anomalies.length} Schema Drift Anomaly Detected`}>
+                      <AlertTriangle className="w-2.5 h-2.5" />
+                      DRIFT
+                    </span>
+                  )}
+                  {msg.diff?.hasChanges && (
+                    <span className="px-1 py-0.2 rounded text-[9px] bg-sky-950 text-sky-400 border border-sky-800 font-mono font-bold flex-shrink-0 flex items-center gap-0.5" title={`Diff: +${msg.diff.summary.added} ~${msg.diff.summary.modified} -${msg.diff.summary.deleted}`}>
+                      <GitCompare className="w-2.5 h-2.5" />
+                      Δ
+                    </span>
+                  )}
                 </div>
 
                 {/* QoS */}

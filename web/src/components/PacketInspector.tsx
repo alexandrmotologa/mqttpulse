@@ -1,6 +1,21 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { InboundMessage } from '../types';
-import { X, Copy, Check, FileCode, Binary, Braces, Layers, Clock, Zap } from 'lucide-react';
+import {
+  X,
+  Copy,
+  Check,
+  FileCode,
+  Binary,
+  Braces,
+  Layers,
+  Clock,
+  Zap,
+  GitCompare,
+  AlertTriangle,
+  Plus,
+  RefreshCw,
+  Minus
+} from 'lucide-react';
 
 interface PacketInspectorProps {
   message: InboundMessage | null;
@@ -8,7 +23,7 @@ interface PacketInspectorProps {
 }
 
 export const PacketInspector: React.FC<PacketInspectorProps> = ({ message, onClose }) => {
-  const [activeTab, setActiveTab] = useState<'decoded' | 'json' | 'hex' | 'raw'>('decoded');
+  const [activeTab, setActiveTab] = useState<'decoded' | 'diff' | 'json' | 'hex' | 'raw'>('decoded');
   const [copied, setCopied] = useState(false);
 
   if (!message) return null;
@@ -22,6 +37,8 @@ export const PacketInspector: React.FC<PacketInspectorProps> = ({ message, onClo
   const userProperties = message.properties?.userProperties
     ? Object.entries(message.properties.userProperties)
     : [];
+
+  const diff = message.diff;
 
   return (
     <div className="flex flex-col h-full bg-[#111827] border-l border-slate-800 text-slate-200 select-text">
@@ -79,7 +96,9 @@ export const PacketInspector: React.FC<PacketInspectorProps> = ({ message, onClo
       <div className="px-4 py-2 border-b border-slate-800/80 bg-[#131c2e] flex items-center justify-between text-xs text-slate-400 font-mono">
         <div className="flex items-center gap-1.5">
           <Clock className="w-3.5 h-3.5 text-slate-500" />
-          <span>{new Date(message.timestamp).toLocaleTimeString()}.{String(message.timestamp % 1000).padStart(3, '0')}</span>
+          <span>
+            {new Date(message.timestamp).toLocaleTimeString()}.{String(message.timestamp % 1000).padStart(3, '0')}
+          </span>
         </div>
         {message.latencyMs !== undefined && (
           <div className="flex items-center gap-1 text-emerald-400 font-semibold">
@@ -88,6 +107,23 @@ export const PacketInspector: React.FC<PacketInspectorProps> = ({ message, onClo
           </div>
         )}
       </div>
+
+      {/* Schema Drift Warning Alert Banner */}
+      {message.drift && message.drift.isDrift && (
+        <div className="m-3 p-3 bg-amber-950/70 border border-amber-700/80 rounded-lg text-amber-200 text-xs font-mono">
+          <div className="flex items-center gap-2 font-bold text-amber-400 mb-1.5">
+            <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+            <span>Schema Drift Detected ({message.drift.anomalies.length} anomaly)</span>
+          </div>
+          <div className="space-y-1 text-[11px] text-amber-300/90">
+            {message.drift.anomalies.map((a, i) => (
+              <div key={i} className="bg-amber-900/40 p-1.5 rounded border border-amber-800/50">
+                &bull; {a.message}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* MQTT 5.0 Header Properties */}
       {message.properties && (
@@ -133,10 +169,10 @@ export const PacketInspector: React.FC<PacketInspectorProps> = ({ message, onClo
       )}
 
       {/* Payload Navigation Tabs */}
-      <div className="flex items-center border-b border-slate-800 bg-[#0f172a] px-4">
+      <div className="flex items-center border-b border-slate-800 bg-[#0f172a] px-3 overflow-x-auto">
         <button
           onClick={() => setActiveTab('decoded')}
-          className={`flex items-center gap-1.5 py-2.5 px-3 text-xs font-medium border-b-2 transition ${
+          className={`flex items-center gap-1.5 py-2.5 px-3 text-xs font-medium border-b-2 transition whitespace-nowrap ${
             activeTab === 'decoded'
               ? 'border-emerald-500 text-emerald-400'
               : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -144,9 +180,27 @@ export const PacketInspector: React.FC<PacketInspectorProps> = ({ message, onClo
         >
           <Braces className="w-3.5 h-3.5" /> Decoded View
         </button>
+
+        <button
+          onClick={() => setActiveTab('diff')}
+          className={`flex items-center gap-1.5 py-2.5 px-3 text-xs font-medium border-b-2 transition whitespace-nowrap ${
+            activeTab === 'diff'
+              ? 'border-emerald-500 text-emerald-400'
+              : 'border-transparent text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <GitCompare className="w-3.5 h-3.5" />
+          <span>Payload Diff</span>
+          {diff && diff.hasChanges && (
+            <span className="text-[10px] px-1 py-0.2 bg-emerald-950 text-emerald-400 rounded border border-emerald-800 font-mono">
+              ~{diff.summary.modified}
+            </span>
+          )}
+        </button>
+
         <button
           onClick={() => setActiveTab('json')}
-          className={`flex items-center gap-1.5 py-2.5 px-3 text-xs font-medium border-b-2 transition ${
+          className={`flex items-center gap-1.5 py-2.5 px-3 text-xs font-medium border-b-2 transition whitespace-nowrap ${
             activeTab === 'json'
               ? 'border-emerald-500 text-emerald-400'
               : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -154,19 +208,21 @@ export const PacketInspector: React.FC<PacketInspectorProps> = ({ message, onClo
         >
           <FileCode className="w-3.5 h-3.5" /> Formatted JSON
         </button>
+
         <button
           onClick={() => setActiveTab('hex')}
-          className={`flex items-center gap-1.5 py-2.5 px-3 text-xs font-medium border-b-2 transition ${
+          className={`flex items-center gap-1.5 py-2.5 px-3 text-xs font-medium border-b-2 transition whitespace-nowrap ${
             activeTab === 'hex'
               ? 'border-emerald-500 text-emerald-400'
               : 'border-transparent text-slate-400 hover:text-slate-200'
           }`}
         >
-          <Binary className="w-3.5 h-3.5" /> Hex / ASCII Dump
+          <Binary className="w-3.5 h-3.5" /> Hex / ASCII
         </button>
+
         <button
           onClick={() => setActiveTab('raw')}
-          className={`flex items-center gap-1.5 py-2.5 px-3 text-xs font-medium border-b-2 transition ${
+          className={`flex items-center gap-1.5 py-2.5 px-3 text-xs font-medium border-b-2 transition whitespace-nowrap ${
             activeTab === 'raw'
               ? 'border-emerald-500 text-emerald-400'
               : 'border-transparent text-slate-400 hover:text-slate-200'
@@ -189,6 +245,65 @@ export const PacketInspector: React.FC<PacketInspectorProps> = ({ message, onClo
             <pre className="text-emerald-300 leading-relaxed overflow-x-auto whitespace-pre-wrap">
               {message.decoded.formattedJson || message.decoded.rawString || '(No decoded representation)'}
             </pre>
+          </div>
+        )}
+
+        {/* Real-time Payload Diff Tab */}
+        {activeTab === 'diff' && (
+          <div>
+            {!diff ? (
+              <div className="text-slate-500 text-center py-8">
+                Initial message on this topic (no previous state available for delta comparison).
+              </div>
+            ) : !diff.hasChanges ? (
+              <div className="p-3 bg-slate-900 rounded border border-slate-800 text-slate-400 text-center">
+                Identical to previous message on this topic (0 modifications).
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 pb-2 border-b border-slate-800 text-xs">
+                  <span className="flex items-center gap-1 text-emerald-400 font-bold">
+                    <Plus className="w-3.5 h-3.5" /> {diff.summary.added} Added
+                  </span>
+                  <span className="flex items-center gap-1 text-amber-400 font-bold">
+                    <RefreshCw className="w-3.5 h-3.5" /> {diff.summary.modified} Modified
+                  </span>
+                  <span className="flex items-center gap-1 text-rose-400 font-bold">
+                    <Minus className="w-3.5 h-3.5" /> {diff.summary.deleted} Deleted
+                  </span>
+                </div>
+
+                <div className="space-y-1.5">
+                  {diff.entries.map((e, idx) => (
+                    <div
+                      key={idx}
+                      className={`p-2 rounded border text-xs leading-relaxed ${
+                        e.type === 'modified'
+                          ? 'bg-amber-950/40 border-amber-800/60 text-amber-200'
+                          : e.type === 'added'
+                          ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-200'
+                          : 'bg-rose-950/40 border-rose-800/60 text-rose-200'
+                      }`}
+                    >
+                      <div className="font-bold text-white mb-0.5">{e.path}:</div>
+                      {e.type === 'modified' && (
+                        <div className="flex items-center gap-2 flex-wrap text-[11px]">
+                          <span className="line-through text-slate-400">{JSON.stringify(e.oldValue)}</span>
+                          <span className="text-amber-400 font-bold">&rarr;</span>
+                          <span className="text-emerald-300 font-semibold">{JSON.stringify(e.newValue)}</span>
+                        </div>
+                      )}
+                      {e.type === 'added' && (
+                        <div className="text-[11px] text-emerald-300">+ {JSON.stringify(e.newValue)}</div>
+                      )}
+                      {e.type === 'deleted' && (
+                        <div className="text-[11px] text-rose-300">- {JSON.stringify(e.oldValue)}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

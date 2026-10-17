@@ -7,3 +7,4 @@ temp_frames/
 *.log
 coverage/
 .turbo/
+*.tsbuildinfo
