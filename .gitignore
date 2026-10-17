@@ -1,0 +1,9 @@
+node_modules/
+dist/
+web/dist/
+web/node_modules/
+temp_frames/
+.DS_Store
+*.log
+coverage/
+.turbo/
